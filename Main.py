@@ -1,37 +1,65 @@
+import argparse
+import base64
+import datetime
+import logging
+import random
+import re
+import sys
+
+from pyquery import PyQuery
 from requests import session
-from time import sleep
-from random import randint
+from retry import retry
+
+homeURL = 'http://selfreport.shu.edu.cn/'
+loginURL = 'https://newsso.shu.edu.cn/login'
+reportURL = 'http://selfreport.shu.edu.cn/DayReport.aspx'
+template = r'{"p1_BaoSRQ":{"Text":"%s"},"p1_DangQSTZK":{"F_Items":[["良好","良好",1],["不适","不适",1]],"SelectedValue":"良好"},"p1_ZhengZhuang":{"Hidden":true,"F_Items":[["感冒","感冒",1],["咳嗽","咳嗽",1],["发热","发热",1]],"SelectedValueArray":[]},"p1_ZaiXiao":{"F_Items":[["不在校","不在校",1],["宝山","宝山校区",1],["延长","延长校区",1],["嘉定","嘉定校区",1],["新闸路","新闸路校区",1]],"SelectedValue":"%s"},"p1_GuoNei":{"F_Items":[["国内","国内",1],["国外","国外",1]],"SelectedValue":"%s"},"p1_DangQSZD":{"Required":true,"SelectedValue":"%s","F_Items":[["上海","上海",1],["湖北","湖北",1],["其他","其他",1]]},"p1_ddlSheng":{"F_Items":[["-1","选择省份",1,"",""],["北京","北京",1,"",""],["天津","天津",1,"",""],["上海","上海",1,"",""],["重庆","重庆",1,"",""],["河北","河北",1,"",""],["山西","山西",1,"",""],["辽宁","辽宁",1,"",""],["吉林","吉林",1,"",""],["黑龙江","黑龙江",1,"",""],["江苏","江苏",1,"",""],["浙江","浙江",1,"",""],["安徽","安徽",1,"",""],["福建","福建",1,"",""],["江西","江西",1,"",""],["山东","山东",1,"",""],["河南","河南",1,"",""],["湖北","湖北",1,"",""],["湖南","湖南",1,"",""],["广东","广东",1,"",""],["海南","海南",1,"",""],["四川","四川",1,"",""],["贵州","贵州",1,"",""],["云南","云南",1,"",""],["陕西","陕西",1,"",""],["甘肃","甘肃",1,"",""],["青海","青海",1,"",""],["内蒙古","内蒙古",1,"",""],["广西","广西",1,"",""],["西藏","西藏",1,"",""],["宁夏","宁夏",1,"",""],["新疆","新疆",1,"",""],["香港","香港",1,"",""],["澳门","澳门",1,"",""],["台湾","台湾",1,"",""]],"SelectedValueArray":["%s"]},"p1_ddlShi":{"Enabled":true,"F_Items":%s,"SelectedValueArray":["%s"]},"p1_ddlXian":{"Enabled":true,"F_Items":%s,"SelectedValueArray":["%s"]},"p1_XiangXDZ":{"Label":"国内详细地址","Text":"%s"},"p1_QueZHZJC":{"F_Items":[["是","是",1,"",""],["否","否",1,"",""]],"SelectedValueArray":["%s"]},"p1_CengFWH":{"Label":"2020年1月10日后是否在湖北逗留过"},"p1_CengFWH_RiQi":{"Hidden":true},"p1_CengFWH_BeiZhu":{"Hidden":true},"p1_JieChu":{"Label":"01月26日至02月09日是否与来自湖北发热人员密切接触"},"p1_JieChu_RiQi":{"Hidden":true},"p1_JieChu_BeiZhu":{"Hidden":true},"p1_TuJWH":{"Label":"01月26日至02月09日是否乘坐公共交通途径湖北"},"p1_TuJWH_RiQi":{"Hidden":true},"p1_TuJWH_BeiZhu":{"Hidden":true},"p1_JiaRen":{"Label":"01月26日至02月09日家人是否有发热等症状"},"p1_JiaRen_BeiZhu":{"Hidden":true},"p1":{"IFrameAttributes":{}}}'
 
 
 class Client:
+
     def __init__(self, username, password, date):
         self.session = session()
         self.username = username
         self.password = password
+        self.date = date
         self.data = {}
-        self.report_data = {
+
+    @retry(tries=5, logger=logging)
+    def login(self):
+        self.session.headers = {}
+        self.data = {'username': self.username, 'password': self.password, 'login_submit': '登录'}
+        self.session.post(loginURL, data=self.data, timeout=10)
+        resp = self.session.get(homeURL, timeout=10)
+        assert resp.status_code == 200, 'GET URL %s returns %d' % (homeURL, resp.status_code)
+        assert '健康之路' in resp.text, '登录失败'
+        logging.info('登录成功')
+
+    def __get_data(self):
+        resp = self.session.get('http://selfreport.shu.edu.cn/DayReport.aspx')
+        doc = PyQuery(resp.text)
+        html = doc.html()
+        zxMatch = re.findall(r'f7_state={.+?"SelectedValue":"(.+?)"', html)[0]
+        gnMatch = re.findall(r'f8_state={.+?"SelectedValue":"(.+?)"', html)[0]
+        szMatch = re.findall(r'f9_state={.+?"SelectedValue":"(.+?)"', html)[0]
+        shengMatch = re.findall(r'f10_state={.+?"SelectedValueArray":\["(.+?)"]', html)[0]
+        shiMatch = re.findall(r'f11_state={.+?"F_Items":(.+?),"SelectedValueArray":\["(.+?)"]', html)[0]
+        xianMatch = re.findall(r'f12_state={.+?"F_Items":(.+?),"SelectedValueArray":\["(.+?)"]', html)[0]
+        xxMatch = re.findall(r'f13_state={.+?"Text":"(.+?)"', html)[0]
+        jcMatch = re.findall(r'f14_state={.+?"SelectedValueArray":\["(.+?)"]', html)[0]
+        F_State = template % (self.date, zxMatch, gnMatch, szMatch, shengMatch, *shiMatch, *xianMatch, xxMatch, jcMatch)
+        return {
+            'F_State': base64.b64encode(F_State.encode()),
+            '__VIEWSTATE': doc.find('#__VIEWSTATE').attr('value'),
             '__EVENTTARGET': 'p1$ctl00$btnSubmit',
             '__EVENTARGUMENT': '',
-            '__VIEWSTATE': 'U71WZqTsjKUyIBegOZ1fx7f8DgD6xO0ECrpstz2hET5Hs0SvhH26ISt2abya31jOzUtFtM5vREvQlMAVIf9a7DovdPgvF7bOreWgYw3vVyRBkX8zdDJPewgFy6aAcjIjIyDXWHFBI3nFdycyB76fMAo38MS6M1qnu3SaI8qg1q9FXmp39s75jr9hPNqBUpaZpBmG8z28MxIsxiije2ZOBsuE4OGI/1/bcSGjGC3jGweFUPIWJ2MC4Jclx3grHlZRmOpQ7oAxqvhGaJaVK67tfeUeDlIocOarhZcAESmg2yorFYc+uA9VbLqO1qex5Oi5ttUShX3HYY8ENK8dLgZosUskw4ngjWXFOy0f1BvnLWYbcu6tPTrf0V3YbPdfM8RbjGLtJZrf+xlnVCuF/MVx1I/iASTo0pu1V5HHeB7oel1knA84/Lrox/CcyeTPHeH2hiE1SFraqAvUMD3y0YwJ/PyMRQ9cwphVYSB1mLeFnesTzXW/B9mqjuEcxdsAoiA+1gCmfiUQW8X2J/R52IAT8uxxDj8Z9jPoR5GdK9TeN8CqHsOB2cbXehYspj2wb6xCnOHWBXPndeLN8J0RbBmjA9ykizt65S60ZHL6rjPz4cxV856a0wkpsG2jON/k6MPbYoiP0Kb1rUai4PQ43jWVp7gQZjt3azswFu7DuuA2Wr0ljxNQ77UNkCP/1tZ6Wx4N',
-            '__VIEWSTATEGENERATOR': '7AD7E509',
-            'p1$ChengNuo': 'p1_ChengNuo',
-            'p1$BaoSRQ': date,
+            '__VIEWSTATEGENERATOR': doc.find('#__VIEWSTATEGENERATOR').attr('value'),
+            'p1$ChengNuo': 'p1$ChengNuo',
+            'p1$BaoSRQ': self.date,
             'p1$DangQSTZK': '良好',
-            'p1$TiWen': '37',
-            'p1$ZaiXiao': '不在校',
-            'p1$GuoNei': '国内',
-            'p1$DangQSZD': '上海',
-            'p1$ddlSheng$Value': '上海',
-            'p1$ddlSheng': '上海',
-            'p1$ddlShi$Value': '上海市',
-            'p1$ddlShi': '上海市',
-            'p1$ddlXian$Value': '浦东新区',
-            'p1$ddlXian': '浦东新区',
-            'p1$XiangXDZ': '浦东新区', #  家庭住址
-            'p1$QueZHZJC$Value': '否',
-            'p1$QueZHZJC': '否',
-            'p1$DaoXQLYGJ': '',
-            'p1$DaoXQLYCS': '',
+            'p1$TiWen': str(36 + random.randint(2, 10) / 10.0),
+            'F_TARGET': 'p1_ctl00_btnSubmit',
+            'p1_Collapsed': 'false',
             'p1$CengFWH_RiQi': '',
             'p1$CengFWH_BeiZhu': '',
             'p1$JieChu_RiQi': '',
@@ -39,45 +67,65 @@ class Client:
             'p1$TuJWH_RiQi': '',
             'p1$TuJWH_BeiZhu': '',
             'p1$JiaRen_BeiZhu': '',
-            'p1$Address2': '中国上海市上海市浦东新区世纪大道2001号',
-            'p1_Collapsed': 'false',
-            'F_STATE': 'eyJwMV9CYW9TUlEiOnsiVGV4dCI6IjIwMjAtMDItMTcifSwicDFfRGFuZ1FTVFpLIjp7IkZfSXRlbXMiOltbIuiJr+WlvSIsIuiJr+WlvSIsMV0sWyLkuI3pgIIiLCLkuI3pgIIiLDFdXSwiU2VsZWN0ZWRWYWx1ZSI6IuiJr+WlvSJ9LCJwMV9aaGVuZ1podWFuZyI6eyJIaWRkZW4iOnRydWUsIkZfSXRlbXMiOltbIuaEn+WGkiIsIuaEn+WGkiIsMV0sWyLlkrPll70iLCLlkrPll70iLDFdLFsi5Y+R54OtIiwi5Y+R54OtIiwxXV0sIlNlbGVjdGVkVmFsdWVBcnJheSI6W119LCJwMV9aYWlYaWFvIjp7IkZfSXRlbXMiOltbIuS4jeWcqOagoSIsIuS4jeWcqOagoSIsMV0sWyLlrp3lsbEiLCLlrp3lsbHmoKHljLoiLDFdLFsi5bu26ZW/Iiwi5bu26ZW/5qCh5Yy6IiwxXSxbIuWYieWumiIsIuWYieWumuagoeWMuiIsMV0sWyLmlrDpl7jot68iLCLmlrDpl7jot6/moKHljLoiLDFdXSwiU2VsZWN0ZWRWYWx1ZSI6IuS4jeWcqOagoSJ9LCJwMV9HdW9OZWkiOnsiRl9JdGVtcyI6W1si5Zu95YaFIiwi5Zu95YaFIiwxXSxbIuWbveWkliIsIuWbveWkliIsMV1dLCJTZWxlY3RlZFZhbHVlIjoi5Zu95YaFIn0sInAxX0RhbmdRU1pEIjp7IlJlcXVpcmVkIjp0cnVlLCJTZWxlY3RlZFZhbHVlIjoi5LiK5rW3IiwiRl9JdGVtcyI6W1si5LiK5rW3Iiwi5LiK5rW3IiwxXSxbIua5luWMlyIsIua5luWMlyIsMV0sWyLlhbbku5YiLCLlhbbku5YiLDFdXX0sInAxX2RkbFNoZW5nIjp7IkZfSXRlbXMiOltbIi0xIiwi6YCJ5oup55yB5Lu9IiwxLCIiLCIiXSxbIuWMl+S6rCIsIuWMl+S6rCIsMSwiIiwiIl0sWyLlpKnmtKUiLCLlpKnmtKUiLDEsIiIsIiJdLFsi5LiK5rW3Iiwi5LiK5rW3IiwxLCIiLCIiXSxbIumHjeW6hiIsIumHjeW6hiIsMSwiIiwiIl0sWyLmsrPljJciLCLmsrPljJciLDEsIiIsIiJdLFsi5bGx6KW/Iiwi5bGx6KW/IiwxLCIiLCIiXSxbIui+veWugSIsIui+veWugSIsMSwiIiwiIl0sWyLlkInmnpciLCLlkInmnpciLDEsIiIsIiJdLFsi6buR6b6Z5rGfIiwi6buR6b6Z5rGfIiwxLCIiLCIiXSxbIuaxn+iLjyIsIuaxn+iLjyIsMSwiIiwiIl0sWyLmtZnmsZ8iLCLmtZnmsZ8iLDEsIiIsIiJdLFsi5a6J5b69Iiwi5a6J5b69IiwxLCIiLCIiXSxbIuemj+W7uiIsIuemj+W7uiIsMSwiIiwiIl0sWyLmsZ/opb8iLCLmsZ/opb8iLDEsIiIsIiJdLFsi5bGx5LicIiwi5bGx5LicIiwxLCIiLCIiXSxbIuays+WNlyIsIuays+WNlyIsMSwiIiwiIl0sWyLmuZbljJciLCLmuZbljJciLDEsIiIsIiJdLFsi5rmW5Y2XIiwi5rmW5Y2XIiwxLCIiLCIiXSxbIuW5v+S4nCIsIuW5v+S4nCIsMSwiIiwiIl0sWyLmtbfljZciLCLmtbfljZciLDEsIiIsIiJdLFsi5Zub5bedIiwi5Zub5bedIiwxLCIiLCIiXSxbIui0teW3niIsIui0teW3niIsMSwiIiwiIl0sWyLkupHljZciLCLkupHljZciLDEsIiIsIiJdLFsi6ZmV6KW/Iiwi6ZmV6KW/IiwxLCIiLCIiXSxbIueUmOiCgyIsIueUmOiCgyIsMSwiIiwiIl0sWyLpnZLmtbciLCLpnZLmtbciLDEsIiIsIiJdLFsi5YaF6JKZ5Y+kIiwi5YaF6JKZ5Y+kIiwxLCIiLCIiXSxbIuW5v+ilvyIsIuW5v+ilvyIsMSwiIiwiIl0sWyLopb/ol48iLCLopb/ol48iLDEsIiIsIiJdLFsi5a6B5aSPIiwi5a6B5aSPIiwxLCIiLCIiXSxbIuaWsOeWhiIsIuaWsOeWhiIsMSwiIiwiIl0sWyLpppnmuK8iLCLpppnmuK8iLDEsIiIsIiJdLFsi5r6z6ZeoIiwi5r6z6ZeoIiwxLCIiLCIiXSxbIuWPsOa5viIsIuWPsOa5viIsMSwiIiwiIlF_STATE1dLCJTZWxlY3RlZFZhbHVlQXJyYXkiOlsi5LiK5rW3Il19LCJwMV9kZGxTaGkiOnsiRW5hYmxlZCI6dHJ1ZSwiRl9JdGVtcyI6W1siLTEiLCLpgInmi6nluIIiLDEsIiIsIiJdLFsi5LiK5rW35biCIiwi5LiK5rW35biCIiwxLCIiLCIiXV0sIlNlbGVjdGVkVmFsdWVBcnJheSI6WyLkuIrmtbfluIIiXX0sInAxX2RkbFhpYW4iOnsiRW5hYmxlZCI6dHJ1ZSwiRl9JdGVtcyI6W1siLTEiLCLpgInmi6nljr/ljLoiLDEsIiIsIiJdLFsi6buE5rWm5Yy6Iiwi6buE5rWm5Yy6IiwxLCIiLCIiXSxbIuWNoua5vuWMuiIsIuWNoua5vuWMuiIsMSwiIiwiIl0sWyLlvpDmsYfljLoiLCLlvpDmsYfljLoiLDEsIiIsIiJdLFsi6ZW/5a6B5Yy6Iiwi6ZW/5a6B5Yy6IiwxLCIiLCIiXSxbIumdmeWuieWMuiIsIumdmeWuieWMuiIsMSwiIiwiIl0sWyLmma7pmYDljLoiLCLmma7pmYDljLoiLDEsIiIsIiJdLFsi6Jm55Y+j5Yy6Iiwi6Jm55Y+j5Yy6IiwxLCIiLCIiXSxbIuadqOa1puWMuiIsIuadqOa1puWMuiIsMSwiIiwiIl0sWyLlrp3lsbHljLoiLCLlrp3lsbHljLoiLDEsIiIsIiJdLFsi6Ze16KGM5Yy6Iiwi6Ze16KGM5Yy6IiwxLCIiLCIiXSxbIuWYieWumuWMuiIsIuWYieWumuWMuiIsMSwiIiwiIl0sWyLmnb7msZ/ljLoiLCLmnb7msZ/ljLoiLDEsIiIsIiJdLFsi6YeR5bGx5Yy6Iiwi6YeR5bGx5Yy6IiwxLCIiLCIiXSxbIumdkua1puWMuiIsIumdkua1puWMuiIsMSwiIiwiIl0sWyLlpYnotKTljLoiLCLlpYnotKTljLoiLDEsIiIsIiJdLFsi5rWm5Lic5paw5Yy6Iiwi5rWm5Lic5paw5Yy6IiwxLCIiLCIiXSxbIuW0h+aYjuWMuiIsIuW0h+aYjuWMuiIsMSwiIiwiIl1dLCJTZWxlY3RlZFZhbHVlQXJyYXkiOlsi5rWm5Lic5paw5Yy6Il19LCJwMV9YaWFuZ1hEWiI6eyJMYWJlbCI6IuWbveWGheivpue7huWcsOWdgCIsIlRleHQiOiLogIDljY7ot680MjHlvIQxNeWPtzcwMiJ9LCJwMV9RdWVaSFpKQyI6eyJGX0l0ZW1zIjpbWyLmmK8iLCLmmK8iLDEsIiIsIiJdLFsi5ZCmIiwi5ZCmIiwxLCIiLCIiXV0sIlNlbGVjdGVkVmFsdWVBcnJheSI6WyLlkKYiXX0sInAxX0NlbmdGV0giOnsiTGFiZWwiOiIyMDIw5bm0MeaciDEw5pel5ZCO5piv5ZCm5Zyo5rmW5YyX6YCX55WZ6L+HIn0sInAxX0NlbmdGV0hfUmlRaSI6eyJIaWRkZW4iOnRydWV9LCJwMV9DZW5nRldIX0JlaVpodSI6eyJIaWRkZW4iOnRydWV9LCJwMV9KaWVDaHUiOnsiTGFiZWwiOiIwMuaciDAz5pel6IezMDLmnIgxN+aXpeaYr+WQpuS4juadpeiHqua5luWMl+WPkeeDreS6uuWRmOWvhuWIh+aOpeinpiJ9LCJwMV9KaWVDaHVfUmlRaSI6eyJIaWRkZW4iOnRydWV9LCJwMV9KaWVDaHVfQmVpWmh1Ijp7IkhpZGRlbiI6dHJ1ZX0sInAxX1R1SldIIjp7IkxhYmVsIjoiMDLmnIgwM+aXpeiHszAy5pyIMTfml6XmmK/lkKbkuZjlnZDlhazlhbHkuqTpgJrpgJTlvoTmuZbljJcifSwicDFfVHVKV0hfUmlRaSI6eyJIaWRkZW4iOnRydWV9LCJwMV9UdUpXSF9CZWlaaHUiOnsiSGlkZGVuIjp0cnVlfSwicDFfSmlhUmVuIjp7IkxhYmVsIjoiMDLmnIgwM+aXpeiHszAy5pyIMTfml6XlrrbkurrmmK/lkKbmnInlj5Hng63nrYnnl4fnirYifSwicDFfSmlhUmVuX0JlaVpodSI6eyJIaWRkZW4iOnRydWV9LCJwMV9BZGRyZXNzMiI6eyJUZXh0Ijoi5Lit5Zu95LiK5rW35biC5LiK5rW35biC5rWm5Lic5paw5Yy65LiW57qq5aSn6YGTMjAwMeWPtyJ9LCJwMSI6eyJJRnJhbWVBdHRyaWJ1dGVzIjp7fX19',
-            'F_TARGET': 'p1_ctl00_btnSubmit',
+            'p1$ZaiXiao': zxMatch,
+            'p1$GuoNei': gnMatch,
+            'p1$DangQSZD': szMatch,
+            'p1$ddlSheng$Value': shengMatch,
+            'p1$ddlShi$Value': shiMatch[1],
+            'p1$ddlXian$Value': xianMatch[1],
+            'p1$XiangXDZ': xxMatch,
+            'p1$QueZHZJC$Value': jcMatch,
+            'p1$QueZHZJC': '否',  # 返沪返校途中
+            'p1$DaoXQLYGJ': '',  # 旅游国家
+            'p1$DaoXQLYCS': '',  # 旅游城市
+            'p1$Address2': '中国'
         }
 
-    def login(self):
-        while True:
-            try:
-                self.session.headers = {}
-                self.data = {'username': self.username, 'password': self.password, 'login_submit': '登录'}
-                self.session.post('https://newsso.shu.edu.cn/login', data=self.data, timeout=10)
-                ret = self.session.get('http://selfreport.shu.edu.cn/', timeout=10)
-                assert ret.text.find('健康之路') != -1, '登录失败'
-                print('登录成功')
-                sleep(1)
-            except Exception as ERR:
-                print('ERR in Client::login: ' + str(ERR))
-                sleep(5)
-                continue
-            break
-
     def run(self):
-        while True:
-            try:
-                self.report_data['p1$TiWen'] = str(36+randint(2, 10)/10.0)
-                self.session.post('http://selfreport.shu.edu.cn/DayReport.aspx', data=self.report_data, timeout=10)
-            except Exception as ERR:
-                print('ERR in Client::run: ' + str(ERR))
-                sleep(10)
-                continue
-            print(self.report_data['p1$TiWen'], end=', ', flush=True)
-            sleep(5)  # 太快就是作死
+        report_data = self.__get_data()
+        msg_pattern = re.compile(r'(?<=F.alert\({message:\')(.*?)(?=\',)')
+
+        @retry(tries=10, delay=1, max_delay=64, backoff=2, logger=logging)
+        def submit(data):
+            resp = self.session.post(reportURL, data=data, timeout=10)
+            assert resp.status_code == 200, 'POST %s returns %d' % (reportURL, resp.status_code)
+            msg = msg_pattern.findall(resp.text)[0]
+            assert msg == '提交成功', msg
+            return msg
+
+        msg = submit(report_data)
+        logging.info(msg + ': ' + report_data['p1$TiWen'])
+
+
+def arg_parser():
+    def log_level(arg_value, pat=re.compile(r'(debug|info|warning|error|critical)', re.IGNORECASE)):
+        if not pat.match(arg_value):
+            raise argparse.ArgumentParser
+        return arg_value
+
+    parser = argparse.ArgumentParser(description='SHU 自动报告 ncov 的脚本。')
+    parser.add_argument('username', help='一卡通账号')
+    parser.add_argument('password', help='一卡通密码')
+    parser.add_argument('-d', '--date', help='上报日期',
+                        type=lambda s: datetime.datetime.strptime(s, '%Y-%m-%d').date(),
+                        default=datetime.date.today())
+    parser.add_argument('-l', '--log_level', default='info', type=log_level,
+                        help='日志级别 (debug, info, warning, error, critical)')
+    return parser
 
 
 def main():
-    client = Client('username', 'password', '2020-02-16')
-    client.login()
-    client.run()
+    args = arg_parser().parse_args()
+    fmt = "%(levelname)s %(message)s"
+    logging.basicConfig(stream=sys.stdout, format=fmt, level=eval("logging." + args.log_level.upper()))
+
+    client = Client(args.username, args.password, args.date)
+    try:
+        client.login()
+        client.run()
+    except Exception as ERR:
+        logging.error(str(ERR))
+        exit(1)
 
 
 if __name__ == '__main__':
