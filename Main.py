@@ -27,7 +27,7 @@ class Client:
             'p1$ddlShi': '上海市',
             'p1$ddlXian$Value': '浦东新区',
             'p1$ddlXian': '浦东新区',
-            'p1$XiangXDZ': '浦东新区',
+            'p1$XiangXDZ': '浦东新区', #  家庭住址
             'p1$QueZHZJC$Value': '否',
             'p1$QueZHZJC': '否',
             'p1$DaoXQLYGJ': '',
@@ -65,7 +65,6 @@ class Client:
         while True:
             try:
                 self.report_data['p1$TiWen'] = str(36+randint(2, 10)/10.0)
-
                 self.session.post('http://selfreport.shu.edu.cn/DayReport.aspx', data=self.report_data, timeout=10)
             except Exception as ERR:
                 print('ERR in Client::run: ' + str(ERR))
