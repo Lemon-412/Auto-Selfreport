@@ -13,7 +13,7 @@ from retry import retry
 homeURL = 'http://selfreport.shu.edu.cn/'
 loginURL = 'https://newsso.shu.edu.cn/login'
 reportURL = 'http://selfreport.shu.edu.cn/DayReport.aspx'
-template = r'{"p1_BaoSRQ":{"Text":"%s"},"p1_DangQSTZK":{"F_Items":[["良好","良好",1],["不适","不适",1]],"SelectedValue":"良好"},"p1_ZhengZhuang":{"Hidden":true,"F_Items":[["感冒","感冒",1],["咳嗽","咳嗽",1],["发热","发热",1]],"SelectedValueArray":[]},"p1_ZaiXiao":{"F_Items":[["不在校","不在校",1],["宝山","宝山校区",1],["延长","延长校区",1],["嘉定","嘉定校区",1],["新闸路","新闸路校区",1]],"SelectedValue":"%s"},"p1_GuoNei":{"F_Items":[["国内","国内",1],["国外","国外",1]],"SelectedValue":"%s"},"p1_DangQSZD":{"Required":true,"SelectedValue":"%s","F_Items":[["上海","上海",1],["湖北","湖北",1],["其他","其他",1]]},"p1_ddlSheng":{"F_Items":[["-1","选择省份",1,"",""],["北京","北京",1,"",""],["天津","天津",1,"",""],["上海","上海",1,"",""],["重庆","重庆",1,"",""],["河北","河北",1,"",""],["山西","山西",1,"",""],["辽宁","辽宁",1,"",""],["吉林","吉林",1,"",""],["黑龙江","黑龙江",1,"",""],["江苏","江苏",1,"",""],["浙江","浙江",1,"",""],["安徽","安徽",1,"",""],["福建","福建",1,"",""],["江西","江西",1,"",""],["山东","山东",1,"",""],["河南","河南",1,"",""],["湖北","湖北",1,"",""],["湖南","湖南",1,"",""],["广东","广东",1,"",""],["海南","海南",1,"",""],["四川","四川",1,"",""],["贵州","贵州",1,"",""],["云南","云南",1,"",""],["陕西","陕西",1,"",""],["甘肃","甘肃",1,"",""],["青海","青海",1,"",""],["内蒙古","内蒙古",1,"",""],["广西","广西",1,"",""],["西藏","西藏",1,"",""],["宁夏","宁夏",1,"",""],["新疆","新疆",1,"",""],["香港","香港",1,"",""],["澳门","澳门",1,"",""],["台湾","台湾",1,"",""]],"SelectedValueArray":["%s"]},"p1_ddlShi":{"Enabled":true,"F_Items":%s,"SelectedValueArray":["%s"]},"p1_ddlXian":{"Enabled":true,"F_Items":%s,"SelectedValueArray":["%s"]},"p1_XiangXDZ":{"Label":"国内详细地址","Text":"%s"},"p1_QueZHZJC":{"F_Items":[["是","是",1,"",""],["否","否",1,"",""]],"SelectedValueArray":["%s"]},"p1_CengFWH":{"Label":"2020年1月10日后是否在湖北逗留过"},"p1_CengFWH_RiQi":{"Hidden":true},"p1_CengFWH_BeiZhu":{"Hidden":true},"p1_JieChu":{"Label":"01月26日至02月09日是否与来自湖北发热人员密切接触"},"p1_JieChu_RiQi":{"Hidden":true},"p1_JieChu_BeiZhu":{"Hidden":true},"p1_TuJWH":{"Label":"01月26日至02月09日是否乘坐公共交通途径湖北"},"p1_TuJWH_RiQi":{"Hidden":true},"p1_TuJWH_BeiZhu":{"Hidden":true},"p1_JiaRen":{"Label":"01月26日至02月09日家人是否有发热等症状"},"p1_JiaRen_BeiZhu":{"Hidden":true},"p1":{"IFrameAttributes":{}}}'
+template = r'{"p1_BaoSRQ":{"Text":"%s"},"p1_DangQSTZK":{"F_Items":[["良好","良好",1],["不适","不适",1]],"SelectedValue":"良好"},"p1_ZhengZhuang":{"Hidden":true,"F_Items":[["感冒","感冒",1],["咳嗽","咳嗽",1],["发热","发热",1]],"SelectedValueArray":[]},"p1_ZaiXiao":{"F_Items":[["不在校","不在校",1],["宝山","宝山校区",1],["延长","延长校区",1],["嘉定","嘉定校区",1],["新闸路","新闸路校区",1]],"SelectedValue":"%s"},"p1_GuoNei":{"F_Items":[["国内","国内",1],["国外","国外",1]],"SelectedValue":"%s"},"p1_ddlSheng":{"F_Items":[["-1","选择省份",1,"",""],["北京","北京",1,"",""],["天津","天津",1,"",""],["上海","上海",1,"",""],["重庆","重庆",1,"",""],["河北","河北",1,"",""],["山西","山西",1,"",""],["辽宁","辽宁",1,"",""],["吉林","吉林",1,"",""],["黑龙江","黑龙江",1,"",""],["江苏","江苏",1,"",""],["浙江","浙江",1,"",""],["安徽","安徽",1,"",""],["福建","福建",1,"",""],["江西","江西",1,"",""],["山东","山东",1,"",""],["河南","河南",1,"",""],["湖北","湖北",1,"",""],["湖南","湖南",1,"",""],["广东","广东",1,"",""],["海南","海南",1,"",""],["四川","四川",1,"",""],["贵州","贵州",1,"",""],["云南","云南",1,"",""],["陕西","陕西",1,"",""],["甘肃","甘肃",1,"",""],["青海","青海",1,"",""],["内蒙古","内蒙古",1,"",""],["广西","广西",1,"",""],["西藏","西藏",1,"",""],["宁夏","宁夏",1,"",""],["新疆","新疆",1,"",""],["香港","香港",1,"",""],["澳门","澳门",1,"",""],["台湾","台湾",1,"",""]],"SelectedValueArray":["%s"]},"p1_ddlShi":{"Enabled":true,"F_Items":%s,"SelectedValueArray":["%s"]},"p1_ddlXian":{"Enabled":true,"F_Items":%s,"SelectedValueArray":["%s"]},"p1_XiangXDZ":{"Label":"国内详细地址","Text":"%s"},"p1_QueZHZJC":{"F_Items":[["是","是",1,"",""],["否","否",1,"",""]],"SelectedValueArray":["%s"]},"p1_CengFWH":{"Label":"2020年1月10日后是否在湖北逗留过"},"p1_CengFWH_RiQi":{"Hidden":true},"p1_CengFWH_BeiZhu":{"Hidden":true},"p1_JieChu":{"Label":"01月26日至02月09日是否与来自湖北发热人员密切接触"},"p1_JieChu_RiQi":{"Hidden":true},"p1_JieChu_BeiZhu":{"Hidden":true},"p1_TuJWH":{"Label":"01月26日至02月09日是否乘坐公共交通途径湖北"},"p1_TuJWH_RiQi":{"Hidden":true},"p1_TuJWH_BeiZhu":{"Hidden":true},"p1_JiaRen":{"Label":"01月26日至02月09日家人是否有发热等症状"},"p1_JiaRen_BeiZhu":{"Hidden":true},"p1":{"IFrameAttributes":{}}}'
 
 
 class Client:
@@ -36,18 +36,17 @@ class Client:
         logging.info('登录成功')
 
     def __get_data(self):
-        resp = self.session.get('http://selfreport.shu.edu.cn/DayReport.aspx')
+        resp = self.session.get(reportURL)
         doc = PyQuery(resp.text)
         html = doc.html()
         zxMatch = re.findall(r'f7_state={.+?"SelectedValue":"(.+?)"', html)[0]
         gnMatch = re.findall(r'f8_state={.+?"SelectedValue":"(.+?)"', html)[0]
-        szMatch = re.findall(r'f9_state={.+?"SelectedValue":"(.+?)"', html)[0]
-        shengMatch = re.findall(r'f10_state={.+?"SelectedValueArray":\["(.+?)"]', html)[0]
-        shiMatch = re.findall(r'f11_state={.+?"F_Items":(.+?),"SelectedValueArray":\["(.+?)"]', html)[0]
-        xianMatch = re.findall(r'f12_state={.+?"F_Items":(.+?),"SelectedValueArray":\["(.+?)"]', html)[0]
-        xxMatch = re.findall(r'f13_state={.+?"Text":"(.+?)"', html)[0]
-        jcMatch = re.findall(r'f14_state={.+?"SelectedValueArray":\["(.+?)"]', html)[0]
-        F_State = template % (self.date, zxMatch, gnMatch, szMatch, shengMatch, *shiMatch, *xianMatch, xxMatch, jcMatch)
+        shengMatch = re.findall(r'f9_state={.+?"SelectedValueArray":\["(.+?)"]', html)[0]
+        shiMatch = re.findall(r'f10_state={.+?"F_Items":(.+?),"SelectedValueArray":\["(.+?)"]', html)[0]
+        xianMatch = re.findall(r'f11_state={.+?"F_Items":(.+?),"SelectedValueArray":\["(.+?)"]', html)[0]
+        xxMatch = re.findall(r'f12_state={.+?"Text":"(.+?)"', html)[0]
+        jcMatch = re.findall(r'f13_state={.+?"SelectedValueArray":\["(.+?)"]', html)[0]
+        F_State = template % (self.date, zxMatch, gnMatch, shengMatch, *shiMatch, *xianMatch, xxMatch, jcMatch)
         return {
             'F_State': base64.b64encode(F_State.encode()),
             '__VIEWSTATE': doc.find('#__VIEWSTATE').attr('value'),
@@ -69,13 +68,15 @@ class Client:
             'p1$JiaRen_BeiZhu': '',
             'p1$ZaiXiao': zxMatch,
             'p1$GuoNei': gnMatch,
-            'p1$DangQSZD': szMatch,
             'p1$ddlSheng$Value': shengMatch,
+            'p1$ddlSheng': shengMatch,
             'p1$ddlShi$Value': shiMatch[1],
+            'p1$ddlShi': shiMatch[1],
             'p1$ddlXian$Value': xianMatch[1],
+            'p1$ddlXian': xianMatch[1],
             'p1$XiangXDZ': xxMatch,
             'p1$QueZHZJC$Value': jcMatch,
-            'p1$QueZHZJC': '否',  # 返沪返校途中
+            'p1$QueZHZJC': jcMatch,
             'p1$DaoXQLYGJ': '',  # 旅游国家
             'p1$DaoXQLYCS': '',  # 旅游城市
             'p1$Address2': '中国'
@@ -83,7 +84,7 @@ class Client:
 
     def run(self):
         report_data = self.__get_data()
-        msg_pattern = re.compile(r'(?<=F.alert\({message:\')(.*?)(?=\',)')
+        msg_pattern = re.compile(r'F.alert\({message:\'(.*?)\',')
 
         @retry(tries=10, delay=1, max_delay=64, backoff=2, logger=logging)
         def submit(data):
