@@ -92,6 +92,8 @@ class Client:
             'p1$DangRGL':'否',      # 是否隔离
             'p1$DaoXQLYGJ': '',     # 旅游国家
             'p1$DaoXQLYCS': '',     # 旅游城市
+            'p1$SuiSM':'绿色',       # 随申码颜色
+            'p1$LvMa14Days':'是',    # 截止今天是否连续14天健康码为绿色
             'p1$Address2': '中国',
             "p1_SuiSMSM_Collapsed": "false",
             "p1_GeLSM_Collapsed":'false',
