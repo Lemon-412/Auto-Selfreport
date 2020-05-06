@@ -1,3 +1,5 @@
+# -*- coding:utf-8 -*-
+
 import argparse
 import base64
 import datetime
@@ -46,7 +48,6 @@ class Client:
         shengMatch = re.findall(r'f16_state={.+?"SelectedValueArray":\["(.+?)"]', html)[0]
         shiMatch = re.findall(r'f17_state={.*?"F_Items":(.+?),"SelectedValueArray":\["(.+?)"]', html)[0]
         xianMatch = re.findall(r'f18_state={.*?"F_Items":(.+?),"SelectedValueArray":\["(.+?)"]', html)[0]
-        # print(shiMatch)
         xxMatch = re.findall(r'f20_state={.*?"Text":"(.+?)"', html)[0]
         F_State = template % (
         self.date, zxMatch, gnMatch, shengMatch, shiMatch[0], shiMatch[1], xianMatch[0], xianMatch[1], xxMatch, "否")
