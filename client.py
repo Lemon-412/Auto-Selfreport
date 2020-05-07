@@ -30,7 +30,7 @@ class Client(object):
     @retry(tries=5, logger=logging)
     def _login(self):
         self.session.headers = {}
-        data = {'username': self.username, 'password': self.password, 'login_submit': '登录'}
+        data = {'username': self.username, 'password': self.password, 'login_submit': '登录/Login'}
         self.session.post(loginURL, data=data, timeout=10)
         resp = self.session.get(reportURL, timeout=10)
         time.sleep(5)
@@ -59,7 +59,7 @@ class Client(object):
                 self.date, zxMatch, gnMatch, shengMatch, *shiMatch, *xianMatch,
                 tzMatch[0], xxMatch, jcMatch, ssMatch[0])
             shanghai = True
-        else:
+        else:  # 非上海
             F_State = re.sub(r'\s+', '', template[1]) % (
                 self.date, zxMatch, gnMatch, shengMatch, *shiMatch, *xianMatch, xxMatch, jcMatch)
             shanghai = False
